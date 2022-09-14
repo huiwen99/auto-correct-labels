@@ -1,0 +1,12 @@
+model_name: 'efficientnet'
+data_path: './data'
+
+n_repeats: 3
+batch_size: 32
+learning_rate: 0.001
+num_epochs: 1
+
+test_split: 0.1
+val_split: 0.2
+
+results_path: './results/corrected_labels.csv'
