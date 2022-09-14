@@ -1,5 +1,5 @@
 # auto-correct-labels
-Automatically correct mislabelled data. Based on this [article](https://medium.com/@yalcinmurat1986/auto-correcting-mislabeled-data-7a4098c77357).
+Automatically correct mislabelled image data for custom datasets. Based on this [article](https://medium.com/@yalcinmurat1986/auto-correcting-mislabeled-data-7a4098c77357).
 
 ## Instructions to run
 ### Step 1
