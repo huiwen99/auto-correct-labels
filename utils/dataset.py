@@ -36,7 +36,7 @@ class CustomDataset(Dataset):
     """
     Custom dataset class.
     """
-    def __init__(self, data_path, mask=None, mode=0, img_size=(224,224)):
+    def __init__(self, data_path, mask=None, mode=0, img_size=(224,224), ffcv=True):
         """
         Constructor for dataset class. 
         Uses the mask to return only the desired images 
@@ -57,6 +57,7 @@ class CustomDataset(Dataset):
         self.classes = os.listdir(str(data_path))
         self.num_class = len(self.classes)
         self.mode = mode
+        self.ffcv = ffcv
 
         self.class_map = {k: v for v, k in enumerate(self.classes)}
         self.reverse_class_map = {v: k for v, k in enumerate(self.classes)}
@@ -125,26 +126,26 @@ class CustomDataset(Dataset):
         """
         Returns transform function based on whether the dataset is train or test
         """
-        mean = [125.30691805, 122.95039414, 113.86538318]
-        std = [62.99321928, 62.08870764, 66.70489964]
+        mean = [x/255 for x in [125.30691805, 122.95039414, 113.86538318]]
+        std = [x/255 for x in [62.99321928, 62.08870764, 66.70489964]]
+    
         
-        if self.mode==0:
+        if not self.ffcv:
             transform = A.Compose(
-                [A.Resize(self.img_size[0],self.img_size[1]),
-                A.HorizontalFlip(p=0.5), 
-                A.Normalize(
-                    mean=mean,
-                    std=std,
-                ),
-                ToTensorV2()])
+                [
+                    A.Resize(self.img_size[0],self.img_size[1]),
+                    A.Normalize(mean=mean, std=std, max_pixel_value=1.0),
+                    ToTensorV2()
+                ]
+            )
         else:
             transform = A.Compose(
-                [A.Resize(self.img_size[0],self.img_size[1]),
-                A.Normalize(
-                    mean=mean,
-                    std=std,
-                ),
-                ToTensorV2()])
+                [
+                    A.Resize(self.img_size[0],self.img_size[1]),
+                    # A.Normalize(mean=mean, std=std, max_pixel_value=1.0)
+                ]
+            )
+        
         return transform
 
         
@@ -162,12 +163,14 @@ class CustomDataset(Dataset):
         filename = self.x[index]
         label = self.y[index]
         label = self.class_map[label]
-        label = self.int_to_one_hot(label) 
+        # label = self.int_to_one_hot(label) 
 
         img = cv2.imread(str(filename))
         transform = self.get_transform()
         img = transform(image=img)
         img = img['image']
+        if self.ffcv:
+            img = img.astype(np.uint8)
         
         return img, label
 

@@ -18,9 +18,9 @@ def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch):
         for data, target in tepoch:
             tepoch.set_description("Epoch {}".format(epoch))
             data, target = data.to(device), target.to(device)
+            
+            target = target.reshape(target.size(0)).long()
 
-            #convert one-hot to numerical categories
-            target = torch.argmax(target, dim=1).long()
             optimizer.zero_grad()
             output = model(data)
             loss = criterion(output, target)
@@ -32,7 +32,7 @@ def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch):
     
     val_loss, val_acc = evaluate(model, device, criterion, val_ld)
     print('Val Loss: {:.4f} - Val Accuracy: {:.1f}%'.format(val_loss, val_acc))
-    
+
     return train_loss, train_acc, val_loss, val_acc
 
 def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs):
@@ -73,17 +73,21 @@ def evaluate(model, device, criterion, data_ld):
     model.eval()
     loss = 0 
     correct = 0
+    total_num = 0
     with torch.no_grad():
         for data, target in data_ld:
             data, target = data.to(device), target.to(device)
-            target = torch.argmax(target, dim=1).long()
+            target = target.reshape(target.size(0)).long()
+            
             output = model(data)
             loss += criterion(output, target)
-            pred = output.argmax(dim=1, keepdim=True)
-            correct += pred.eq(target.view_as(pred)).sum().item()
+            pred = output.argmax(dim=1, keepdim=False)
+            
+            correct += torch.eq(target, pred).sum().item()
+            total_num += len(target)
             
     loss /= len(data_ld)
-    acc = 100. * correct / len(data_ld.dataset)
+    acc = 100. * correct / total_num
     return loss, acc
 
 
@@ -127,10 +131,14 @@ def write_results(path, pred_tracker):
         label = pred_tracker[filename]['label']
         corrected_labels = pred_tracker[filename]['corrected_label']
         corrected_label = max(set(corrected_labels), key = corrected_labels.count)
-        df[filename] = [label, corrected_label]
+        num_preds = len(corrected_labels)
+        percentage = corrected_labels.count(corrected_label) / num_preds * 100
+        
+        df[filename] = [label, corrected_label, num_preds, percentage]
+        
     df = pd.DataFrame.from_dict(
         df, orient='index',
-        columns=['label', 'corrected_label']
+        columns=['label', 'corrected_label', 'num_preds', '%']
     )
     df.to_csv(path)
         
