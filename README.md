@@ -31,6 +31,7 @@ Parameters:
 - `batch_size`: (int) Batch size for training, validation, and test  
 - `learning_rate`: (float) Learning rate for model training.  
 - `num_epochs`: (int) Number of epochs to train per simulation.  
+- `seed`: (int) Random seed.  
 - `test_split`: (float between 0-1) Ratio of test set to total dataset in each simulation run.  
 - `val_split`: (float between 0-1) Ratio of validation set to total dataset in each simulation run.  
 - `ffcv`: (bool) Whether to use FFCV to speed up training or not.

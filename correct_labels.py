@@ -11,7 +11,6 @@ import numpy as np
 from tqdm import tqdm
 
 
-np.random.seed(2)
 
 # set cpu / gpu
 use_cuda = torch.cuda.is_available()
@@ -29,6 +28,7 @@ batch_size = cfg['batch_size']
 num_workers = cfg['num_workers']
 learning_rate = cfg['learning_rate']
 num_epochs = cfg['num_epochs']
+seed = cfg['seed']
 
 test_split = cfg['test_split']
 val_split = cfg['val_split']
@@ -37,6 +37,10 @@ n_repeats = cfg['n_repeats']
 results_path = cfg['results_path']
 
 ffcv = cfg['ffcv']
+
+# set seeds
+np.random.seed(seed)
+torch.manual_seed(seed)
 
 # load prediction tracker if continuing previous run
 if 'pred_tracker' in cfg:
@@ -67,13 +71,6 @@ if ffcv:
         num_workers,
         shuffle=True
     )
-    test_ld = ffcv_utils.ffcv_loader(
-        write_path,
-        device,
-        batch_size,
-        num_workers,
-        shuffle=False
-    )
     
 # monte carlo simulation
 for i in range(n_repeats):
@@ -102,8 +99,6 @@ for i in range(n_repeats):
         train_ld.traversal_order.indices = train_idx
         val_ld.indices = val_idx
         val_ld.traversal_order.indices = val_idx
-        # test_ld.indices = test_idx
-        # test_ld.traversal_order.indices = test_idx
         
         
 

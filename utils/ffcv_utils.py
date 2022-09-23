@@ -31,6 +31,7 @@ def write_ffcv_dataset(dataset, write_path):
     writer.from_indexed_dataset(dataset)
     
 def ffcv_loader(write_path, device, batch_size, num_workers, shuffle=True):
+    """Get FFCV dataloader from .beton file"""
     mean = [125.30691805, 122.95039414, 113.86538318]
     std = [62.99321928, 62.08870764, 66.70489964]
     
