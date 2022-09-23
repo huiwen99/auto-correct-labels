@@ -1,12 +1,17 @@
 model_name: 'efficientnet'
 data_path: './data'
 
-n_repeats: 3
+n_repeats: 500
 batch_size: 32
+num_workers: 12
 learning_rate: 0.001
-num_epochs: 1
+num_epochs: 3
 
 test_split: 0.1
 val_split: 0.2
 
+ffcv: True
+
 results_path: './results/corrected_labels.csv'
+
+# pred_tracker: './temp/temp_pred_tracker.pickle'

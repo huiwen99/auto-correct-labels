@@ -5,37 +5,41 @@ from tqdm import tqdm
 import datetime
 import numpy as np
 import pandas as pd
+from torch.cuda.amp import autocast
 
 from .model import Classifier
+from .ffcv_utils import gc_get_objects
 
-
-def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch):
+def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch, ffcv):
     """
     Trains model on training data for 1 epoch
     """
     model.train()
     with tqdm(train_ld, unit="batch") as tepoch:
         for data, target in tepoch:
-            tepoch.set_description("Epoch {}".format(epoch))
-            data, target = data.to(device), target.to(device)
+            tepoch.set_description("Epoch {}".format(epoch)),
+            if not ffcv:
+                data, target = data.to(device), target.to(device)
             
             target = target.reshape(target.size(0)).long()
 
             optimizer.zero_grad()
-            output = model(data)
-            loss = criterion(output, target)
+            with autocast():
+                output = model(data)
+                loss = criterion(output, target)
+                gc_get_objects() # for ffcv, need to use this to get decent performance. dk why
             loss.backward()
             optimizer.step()
-            
-    train_loss, train_acc = evaluate(model, device, criterion, train_ld)
+    
+    train_loss, train_acc = evaluate(model, device, criterion, train_ld, ffcv)
     print('Train Epoch: {} @ {} \nTrain Loss: {:.4f} - Train Accuracy: {:.1f}%'.format(epoch, datetime.datetime.now().time(), train_loss, train_acc))
     
-    val_loss, val_acc = evaluate(model, device, criterion, val_ld)
+    val_loss, val_acc = evaluate(model, device, criterion, val_ld, ffcv)
     print('Val Loss: {:.4f} - Val Accuracy: {:.1f}%'.format(val_loss, val_acc))
 
     return train_loss, train_acc, val_loss, val_acc
 
-def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs):
+def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs, ffcv):
     """
     Trains 1 model
     """
@@ -53,7 +57,8 @@ def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, 
             model, device, 
             train_ld, val_ld, 
             optimizer, criterion, 
-            epoch
+            epoch,
+            ffcv
         )
         
         if val_acc >= best_val_acc:
@@ -62,11 +67,12 @@ def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, 
         else:
             patience_counter += 1
             if patience_counter == patience:
+                model.load_state_dict(torch.load(temp_model_path))
                 break
-    model.load_state_dict(torch.load(temp_model_path))
+
     return model
 
-def evaluate(model, device, criterion, data_ld):
+def evaluate(model, device, criterion, data_ld, ffcv):
     """
     Evalutes model and returns loss and accuracy
     """
@@ -74,18 +80,23 @@ def evaluate(model, device, criterion, data_ld):
     loss = 0 
     correct = 0
     total_num = 0
+    batch_num = 0
     with torch.no_grad():
         for data, target in data_ld:
-            data, target = data.to(device), target.to(device)
+            batch_num+=1
+            if not ffcv:
+                data, target = data.to(device), target.to(device)
             target = target.reshape(target.size(0)).long()
             
-            output = model(data)
-            loss += criterion(output, target)
-            pred = output.argmax(dim=1, keepdim=False)
-            
-            correct += torch.eq(target, pred).sum().item()
-            total_num += len(target)
-            
+            with autocast():
+                output = model(data)
+                loss += criterion(output, target)
+                pred = output.argmax(dim=1, keepdim=False)
+
+                correct += torch.eq(target, pred).sum().item()
+                total_num += data.shape[0]
+                
+                
     loss /= len(data_ld)
     acc = 100. * correct / total_num
     return loss, acc
@@ -103,6 +114,8 @@ def get_predictions(model, device, data_ld):
             output = model(data)
             pred = output.argmax(dim=1, keepdim=False)
             predictions.extend(pred.cpu().numpy())
+            
+            
     return np.array(predictions)
 
 

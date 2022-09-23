@@ -9,6 +9,7 @@ import os
 from tqdm import tqdm
 import collections
 
+np.random.seed(2)
 
 class Mask():
     def __init__(self, data_path):
@@ -94,8 +95,8 @@ class CustomDataset(Dataset):
         if mask is not None:
             x, y = self.do_mask(x, y, mask, self.mode)
 
-        cnt = collections.Counter(y)
-        print(cnt)
+        # cnt = collections.Counter(y)
+        # print(cnt)
 
         return x, y
     
@@ -126,34 +127,37 @@ class CustomDataset(Dataset):
         """
         Returns transform function based on whether the dataset is train or test
         """
-        mean = [x/255 for x in [125.30691805, 122.95039414, 113.86538318]]
-        std = [x/255 for x in [62.99321928, 62.08870764, 66.70489964]]
-    
-        
+        mean = [125.30691805, 122.95039414, 113.86538318]
+        std = [62.99321928, 62.08870764, 66.70489964]
+
+        ls = [
+            A.Resize(self.img_size[0],self.img_size[1]),
+            A.Normalize(mean=mean, std=std),
+            
+        ]
         if not self.ffcv:
-            transform = A.Compose(
-                [
-                    A.Resize(self.img_size[0],self.img_size[1]),
-                    A.Normalize(mean=mean, std=std, max_pixel_value=1.0),
-                    ToTensorV2()
-                ]
-            )
-        else:
-            transform = A.Compose(
-                [
-                    A.Resize(self.img_size[0],self.img_size[1]),
-                    # A.Normalize(mean=mean, std=std, max_pixel_value=1.0)
-                ]
-            )
+            ls.append(ToTensorV2())
+            
+        transform = A.Compose(ls)
+        
+        
+        # if not self.ffcv:
+        #     transform = A.Compose(
+        #         [
+        #             A.Resize(self.img_size[0],self.img_size[1]),
+        #             A.Normalize(mean=mean, std=std),
+        #             ToTensorV2()
+        #         ]
+        #     )
+        # else:
+        #     transform = A.Compose(
+        #         [
+        #             A.Resize(self.img_size[0],self.img_size[1]),
+        #             A.Normalize(mean=mean, std=std)
+        #         ]
+        #     )
         
         return transform
-
-        
-    def int_to_one_hot(self, x):
-        """Converts integer to one hot tensor"""
-        one_hot = np.zeros(self.num_class)
-        one_hot[x] = 1
-        return torch.Tensor(one_hot)
 
 
     def __getitem__(self, index):
@@ -162,15 +166,13 @@ class CustomDataset(Dataset):
         """
         filename = self.x[index]
         label = self.y[index]
-        label = self.class_map[label]
-        # label = self.int_to_one_hot(label) 
+        label = int(self.class_map[label])
 
         img = cv2.imread(str(filename))
         transform = self.get_transform()
         img = transform(image=img)
         img = img['image']
-        if self.ffcv:
-            img = img.astype(np.uint8)
+            
         
         return img, label
 

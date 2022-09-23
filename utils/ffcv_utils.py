@@ -6,15 +6,10 @@ from ffcv.fields.decoders import IntDecoder, SimpleRGBImageDecoder, NDArrayDecod
 import numpy as np
 import torch
 import torchvision.transforms as T
+import gc
 
 from utils.dataset import CustomDataset
 import albumentations as A
-
-def get_datasets(data_path, mask):
-    train_dataset = CustomDataset(data_path, mask, mode=0)
-    val_dataset = CustomDataset(data_path, mask, mode=1)
-    test_dataset = CustomDataset(data_path, mask, mode=2, ffcv=False)
-    return train_dataset, val_dataset, test_dataset
 
 def write_ffcv_dataset(dataset, write_path):
     """
@@ -27,34 +22,24 @@ def write_ffcv_dataset(dataset, write_path):
     write_path: str
         Path to write ffcv dataset. '.beton' extension
     """
-    # Pass a type for each data field
-    # writer = DatasetWriter(write_path, {
-    #     # Tune options to optimize dataset size, throughput at train-time
-    #     'image': NDArrayField(
-    #         shape=(len(dataset), dataset.img_size[0], dataset.img_size[1]), 
-    #         dtype=np.dtype('float32')
-    #     ),
-    #     'label': IntField()})
     writer = DatasetWriter(write_path, {
         # Tune options to optimize dataset size, throughput at train-time
-        'image': RGBImageField(max_resolution=256),
+        'image': NDArrayField(dtype=np.dtype(np.float32), shape=(224,224,3)),
         'label': IntField()
     })
     # Write dataset
     writer.from_indexed_dataset(dataset)
     
-
 def ffcv_loader(write_path, device, batch_size, num_workers, shuffle=True):
-    mean = [x/255 for x in [125.30691805, 122.95039414, 113.86538318]]
-    std = [x/255 for x in [62.99321928, 62.08870764, 66.70489964]]
+    mean = [125.30691805, 122.95039414, 113.86538318]
+    std = [62.99321928, 62.08870764, 66.70489964]
+    
     
     image_pipeline = [
-        SimpleRGBImageDecoder(),
+        NDArrayDecoder(),
         ToTensor(),
-        ToDevice(device),
-        ToTorchImage(),
-        Convert(torch.float32),
-        T.Normalize(mean, std)
+        ToTorchImage(convert_back_int16=False),
+        ToDevice(device)
     ]
     label_pipeline = [IntDecoder(), ToTensor(), ToDevice(device)]
     
@@ -68,7 +53,29 @@ def ffcv_loader(write_path, device, batch_size, num_workers, shuffle=True):
         order = OrderOption.SEQUENTIAL
     
     loader = Loader(write_path, batch_size=batch_size, num_workers=num_workers,
-                order=order, pipelines=pipelines)
+                order=order, pipelines=pipelines, drop_last=False)
 
     return loader
 
+
+def gc_get_objects():
+    gc.get_objects()
+
+
+def check_tensors():
+    num_parameters = 0
+    num_tensors = 0
+    for obj in gc.get_objects():
+        try:
+            if torch.is_tensor(obj) or (hasattr(obj, 'data') and torch.is_tensor(obj.data)):
+                if type(obj).__name__ == 'Parameter':
+                    num_parameters += 1
+                elif type(obj).__name__ == 'Tensor':
+                    # print(f"{type(obj).__name__}, {obj.device}, {obj.dtype}, {obj.size()}")
+                    num_tensors += 1
+                else:
+                    print(f"{type(obj).__name__}, {type(obj)}, {obj.device} {obj.dtype}, {obj.size()}")
+        except:
+            pass
+    print(f'num_parameters: {num_parameters}')
+    print(f'num_tensors: {num_tensors}')
