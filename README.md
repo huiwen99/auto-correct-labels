@@ -39,3 +39,5 @@ Parameters:
 
 ### Step 3  
 Run `python3 correct_labels.py` in docker container.  
+
+Output will be saved as a csv file in the `results` folder, which includes a list of filenames, their original and corrected labels, the number of times the image has been predicted in total and the percentage of predictions that were of the corrected label. 
