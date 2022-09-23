@@ -20,6 +20,8 @@ Structure should be as follows:
 └── ...
 ```
 
+Create a `temp` folder if it does not exist yet.  
+
 ### Step 2
 Change the config file `configs/config.yaml` to your liking.  
 Parameters:  
