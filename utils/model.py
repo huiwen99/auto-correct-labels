@@ -16,7 +16,7 @@ class Classifier(nn.Module):
             net = models.efficientnet_v2_s(weights='IMAGENET1K_V1')
             self.features = net.features
             for param in self.features.parameters():
-                param.requires_grad = False
+                param.requires_grad = True
             self.fc = nn.Sequential(nn.Linear(62720, num_class))
         else:    
             self.features = nn.Sequential(nn.Conv2d(3, 8, 3, stride=2, padding=1),

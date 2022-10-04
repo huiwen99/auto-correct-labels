@@ -31,12 +31,13 @@ Parameters:
 - `batch_size`: (int) Batch size for training, validation, and test  
 - `learning_rate`: (float) Learning rate for model training.  
 - `num_epochs`: (int) Number of epochs to train per simulation.  
-- `seed`: (int) Random seed.  
+- `track_eval`: (bool) Evaluate model against train and val set after every epoch and print the results. If True, each epoch will take longer but earlystopping will be performed.  
 - `test_split`: (float between 0-1) Ratio of test set to total dataset in each simulation run.  
 - `val_split`: (float between 0-1) Ratio of validation set to total dataset in each simulation run.  
 - `ffcv`: (bool) Whether to use FFCV to speed up training or not.
 - `results_path`: (str) Path to write csv results to
 - `pred_tracker` (optional): (str) Path to pickle file of dictionary tracking the predictions. Used if previous has stopped midway. Pickle files are automatically saved to `temp/temp_pred_tracker.pickle`  
+- `seed`(optional): (int) Random seed.  
 
 ### Step 3  
 Run `python3 correct_labels.py` in docker container.  

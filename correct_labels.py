@@ -1,3 +1,6 @@
+"""
+Outputs a csv file that maps image data to their corrected labels via monte carlo simulation
+"""
 import utils.train_utils as train_utils
 import utils.ffcv_utils as ffcv_utils
 from utils.dataset import CustomDataset
@@ -28,7 +31,8 @@ batch_size = cfg['batch_size']
 num_workers = cfg['num_workers']
 learning_rate = cfg['learning_rate']
 num_epochs = cfg['num_epochs']
-seed = cfg['seed']
+
+track_eval = cfg['track_eval']
 
 test_split = cfg['test_split']
 val_split = cfg['val_split']
@@ -39,8 +43,10 @@ results_path = cfg['results_path']
 ffcv = cfg['ffcv']
 
 # set seeds
-np.random.seed(seed)
-torch.manual_seed(seed)
+if 'seed' in cfg:
+    seed = cfg['seed']
+    np.random.seed(seed)
+    torch.manual_seed(seed)
 
 # load prediction tracker if continuing previous run
 if 'pred_tracker' in cfg:
@@ -71,6 +77,13 @@ if ffcv:
         num_workers,
         shuffle=True
     )
+    test_ld = ffcv_utils.ffcv_loader(
+        write_path,
+        device,
+        batch_size,
+        num_workers,
+        shuffle=False
+    )
     
 # monte carlo simulation
 for i in range(n_repeats):
@@ -78,7 +91,7 @@ for i in range(n_repeats):
     
     mask = mask_generator.generate_mask(test_split, val_split)
     test_dataset = CustomDataset(data_path, mask, mode=2, ffcv=False)
-    test_ld = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    # test_ld = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
     if not ffcv:
         train_dataset = CustomDataset(data_path, mask, mode=0, ffcv=False)
@@ -99,6 +112,8 @@ for i in range(n_repeats):
         train_ld.traversal_order.indices = train_idx
         val_ld.indices = val_idx
         val_ld.traversal_order.indices = val_idx
+        test_ld.indices = test_idx
+        test_ld.traversal_order.indices = test_idx
         
         
 
@@ -107,7 +122,7 @@ for i in range(n_repeats):
         device, 
         train_ld, val_ld, 
         learning_rate, num_epochs,
-        ffcv
+        track_eval, ffcv
     )
     
     predictions = train_utils.get_predictions(

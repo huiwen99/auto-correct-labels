@@ -10,7 +10,7 @@ from torch.cuda.amp import autocast
 from .model import Classifier
 from .ffcv_utils import gc_get_objects
 
-def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch, ffcv):
+def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch, track_eval, ffcv):
     """
     Trains model on training data for 1 epoch
     """
@@ -31,15 +31,18 @@ def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch, ff
             loss.backward()
             optimizer.step()
     
-    train_loss, train_acc = evaluate(model, device, criterion, train_ld, ffcv)
-    print('Train Epoch: {} @ {} \nTrain Loss: {:.4f} - Train Accuracy: {:.1f}%'.format(epoch, datetime.datetime.now().time(), train_loss, train_acc))
-    
-    val_loss, val_acc = evaluate(model, device, criterion, val_ld, ffcv)
-    print('Val Loss: {:.4f} - Val Accuracy: {:.1f}%'.format(val_loss, val_acc))
+    if track_eval:
+        train_loss, train_acc = evaluate(model, device, criterion, train_ld, ffcv)
+        print('Train Epoch: {} @ {} \nTrain Loss: {:.4f} - Train Accuracy: {:.1f}%'.format(epoch, datetime.datetime.now().time(), train_loss, train_acc))
+        
+        val_loss, val_acc = evaluate(model, device, criterion, val_ld, ffcv)
+        print('Val Loss: {:.4f} - Val Accuracy: {:.1f}%'.format(val_loss, val_acc))
 
-    return train_loss, train_acc, val_loss, val_acc
+        return train_loss, train_acc, val_loss, val_acc
+    else:
+        return 0,0,0,0
 
-def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs, ffcv):
+def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs, track_eval, ffcv):
     """
     Trains 1 model
     """
@@ -58,17 +61,18 @@ def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, 
             train_ld, val_ld, 
             optimizer, criterion, 
             epoch,
-            ffcv
+            track_eval, ffcv
         )
         
-        if val_acc >= best_val_acc:
-            torch.save(model.state_dict(), temp_model_path)
-            patience_counter = 0
-        else:
-            patience_counter += 1
-            if patience_counter == patience:
-                model.load_state_dict(torch.load(temp_model_path))
-                break
+        if track_eval:
+            if val_acc >= best_val_acc:
+                torch.save(model.state_dict(), temp_model_path)
+                patience_counter = 0
+            else:
+                patience_counter += 1
+                if patience_counter == patience:
+                    model.load_state_dict(torch.load(temp_model_path))
+                    break
 
     return model
 
@@ -80,10 +84,8 @@ def evaluate(model, device, criterion, data_ld, ffcv):
     loss = 0 
     correct = 0
     total_num = 0
-    batch_num = 0
     with torch.no_grad():
         for data, target in data_ld:
-            batch_num+=1
             if not ffcv:
                 data, target = data.to(device), target.to(device)
             target = target.reshape(target.size(0)).long()
@@ -95,6 +97,7 @@ def evaluate(model, device, criterion, data_ld, ffcv):
 
                 correct += torch.eq(target, pred).sum().item()
                 total_num += data.shape[0]
+                gc_get_objects()
                 
                 
     loss /= len(data_ld)
@@ -114,7 +117,7 @@ def get_predictions(model, device, data_ld):
             output = model(data)
             pred = output.argmax(dim=1, keepdim=False)
             predictions.extend(pred.cpu().numpy())
-            
+            gc_get_objects()
             
     return np.array(predictions)
 
