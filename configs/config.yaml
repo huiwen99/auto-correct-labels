@@ -1,4 +1,5 @@
 model_name: 'efficientnet'
+# model_weights: 'model_weights/efficientnet_v2_s-dd5fe13b.pth'
 data_path: './data'
 
 n_repeats: 3

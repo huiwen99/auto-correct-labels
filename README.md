@@ -26,6 +26,7 @@ Create a `temp` folder if it does not exist yet.
 Change the config file `configs/config.yaml` to your liking.  
 Parameters:  
 - `model_name`: (str) Name of model architecture. Currently, only supports `efficientnet` and `alexnet`. Else, a custom small CNN will be used.  
+- `model_weights` (optional): (str) Path to torch pretrained weights. If not used, model will download pretrained weights from the internet.  
 - `data_path`: (str) Path to the data in Step 1.
 - `n_repeats`: (int) Number of simulations to run. 1 simulation trains 1 model.  
 - `batch_size`: (int) Batch size for training, validation, and test  

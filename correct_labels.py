@@ -24,6 +24,10 @@ with open(r"configs/config.yaml") as file:
     cfg = yaml.load(file, Loader=yaml.FullLoader)
 
 model_name = cfg['model_name']
+if 'model_weights' in cfg:
+    model_weights = cfg['model_weights']
+else:
+    model_weights = None
 data_path = cfg['data_path']
 mask_generator = Mask(data_path)
 
@@ -118,7 +122,7 @@ for i in range(n_repeats):
         
 
     model = train_utils.train_model(
-        model_name, num_class, 
+        model_name, model_weights, num_class, 
         device, 
         train_ld, val_ld, 
         learning_rate, num_epochs,

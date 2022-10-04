@@ -42,11 +42,11 @@ def train_epoch(model, device, train_ld, val_ld, optimizer, criterion, epoch, tr
     else:
         return 0,0,0,0
 
-def train_model(model_name, num_class, device, train_ld, val_ld, learning_rate, num_epochs, track_eval, ffcv):
+def train_model(model_name, model_weights, num_class, device, train_ld, val_ld, learning_rate, num_epochs, track_eval, ffcv):
     """
     Trains 1 model
     """
-    model = Classifier(num_class, model_name).to(device)
+    model = Classifier(num_class, model_name, model_weights).to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
     
