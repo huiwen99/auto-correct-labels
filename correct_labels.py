@@ -95,7 +95,6 @@ for i in range(n_repeats):
     
     mask = mask_generator.generate_mask(test_split, val_split)
     test_dataset = CustomDataset(data_path, mask, mode=2, ffcv=False)
-    # test_ld = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
     
     if not ffcv:
         train_dataset = CustomDataset(data_path, mask, mode=0, ffcv=False)
@@ -105,7 +104,8 @@ for i in range(n_repeats):
         
         train_ld = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
         val_ld = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
-        
+        test_ld = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
+    
     else:
         train_idx = np.where(mask==0)[0]
         val_idx = np.where(mask==1)[0]
