@@ -44,3 +44,11 @@ Parameters:
 Run `python3 correct_labels.py` in docker container.  
 
 Output will be saved as a csv file in the `results` folder, which includes a list of filenames, their original and corrected labels, the number of times the image has been predicted in total and the percentage of predictions that were of the corrected label. 
+
+### Step 4
+(optional)
+If you would like to automatically relabel your data based on the results in Step 3, edit the `sensitivity` value in `autocorrect_config.yaml` to your liking. This will be the threshold value and any rows above this value will be relabelled.  
+
+
+Run `python3 autocorrect.py` in docker container.
+
