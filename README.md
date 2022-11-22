@@ -43,6 +43,8 @@ Parameters:
 ### Step 3  
 Run `python3 correct_labels.py` in docker container.  
 
+Tip: Set `track_eval` to True to check that train/val accuracy is decent for the first few rounds before restarting with `track_eval`=False.  
+
 Output will be saved as a csv file in the `results` folder, which includes a list of filenames, their original and corrected labels, the number of times the image has been predicted in total and the percentage of predictions that were of the corrected label. 
 
 ### Step 4
